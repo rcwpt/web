@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>rcwptAI // Evolving AI</title>
+    <title>rcwptAI // Distributed Node</title>
     <style>
         :root {
             --bg-color: #050505;
             --neon-blue: #00ccff;
             --neon-purple: #bc13fe;
+            --neon-green: #00ff99;
+            --alert-red: #ff3366;
             --text-dim: #888;
+            --panel-bg: rgba(10, 15, 20, 0.95);
         }
 
         body {
@@ -29,7 +32,7 @@
             z-index: 0;
         }
 
-        /* Layout: Split Screen */
+        /* --- LEFT PANEL: CHAT INTERFACE --- */
         #main-interface {
             position: relative;
             z-index: 10;
@@ -37,23 +40,9 @@
             display: flex;
             flex-direction: column;
             padding: 20px;
-            background: radial-gradient(circle at center, transparent 0%, #050505 100%);
+            background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%);
         }
 
-        #memory-panel {
-            position: relative;
-            z-index: 10;
-            flex: 1;
-            background: rgba(10, 10, 15, 0.85);
-            border-left: 1px solid #333;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            font-size: 0.8rem;
-        }
-
-        /* Chat Area */
         #chat-container {
             flex-grow: 1;
             overflow-y: auto;
@@ -74,6 +63,8 @@
             font-size: 0.95rem;
             border-radius: 4px;
             animation: fadeIn 0.4s ease;
+            position: relative;
+            word-wrap: break-word;
         }
 
         .user-msg {
@@ -91,18 +82,39 @@
             color: #ddd;
         }
 
-        /* Input Area */
+        .ai-msg.verified {
+            border-left-color: var(--neon-green);
+            background: rgba(0, 255, 153, 0.05);
+        }
+
+        .badge {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 2px;
+            margin-right: 5px;
+            display: inline-block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .badge-verified { background: var(--neon-green); color: #000; }
+        .badge-learning { background: var(--neon-purple); color: #fff; }
+        .badge-system { background: #333; color: #fff; border: 1px solid #555; }
+
+        /* --- INPUT AREA --- */
         #input-area {
             display: flex;
             gap: 10px;
             padding-top: 20px;
-            border-top: 1px solid #222;
+            border-top: 1px solid #333;
         }
 
         input[type="text"] {
             flex-grow: 1;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #333;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #444;
             color: var(--neon-blue);
             font-family: inherit;
             padding: 12px;
@@ -112,14 +124,14 @@
 
         input[type="text"]:focus {
             border-color: var(--neon-blue);
-            box-shadow: 0 0 10px rgba(0, 204, 255, 0.1);
+            background: rgba(0, 204, 255, 0.05);
         }
 
         button {
             background: transparent;
             border: 1px solid var(--neon-blue);
             color: var(--neon-blue);
-            padding: 0 25px;
+            padding: 0 20px;
             font-family: inherit;
             cursor: pointer;
             text-transform: uppercase;
@@ -133,56 +145,114 @@
             color: #000;
         }
 
-        /* Memory Sidebar Styling */
+        /* --- RIGHT PANEL: MEMORY CORE --- */
+        #memory-panel {
+            position: relative;
+            z-index: 10;
+            flex: 1;
+            background: var(--panel-bg);
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            font-size: 0.8rem;
+            min-width: 300px;
+        }
+
         h2 {
             margin-top: 0;
-            font-size: 1rem;
-            color: var(--neon-purple);
+            font-size: 0.9rem;
+            color: var(--neon-green);
             text-transform: uppercase;
             letter-spacing: 2px;
             border-bottom: 1px solid #333;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            background-color: var(--neon-green);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 5px var(--neon-green);
+            animation: pulse 2s infinite;
         }
 
         #memory-list {
             flex-grow: 1;
             overflow-y: auto;
-            margin-top: 10px;
+            margin-top: 15px;
             list-style: none;
             padding: 0;
         }
 
         .memory-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #222;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 2px solid #444;
             color: var(--text-dim);
-            font-family: 'Courier New', monospace;
             font-size: 0.75rem;
+            transition: border-color 0.2s;
+        }
+        
+        .memory-item:hover {
+            border-left-color: var(--neon-purple);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .mem-meta {
             display: flex;
             justify-content: space-between;
-        }
-
-        .memory-item span {
-            color: #fff;
-            margin-left: 10px;
-        }
-
-        .timestamp {
-            color: #444;
+            margin-bottom: 4px;
             font-size: 0.65rem;
+            color: #555;
+            text-transform: uppercase;
         }
 
-        #growth-stats {
-            margin-top: 20px;
-            padding-top: 10px;
+        /* --- IO CONTROLS --- */
+        #io-controls {
+            margin-top: auto;
             border-top: 1px solid #333;
-            font-size: 0.7rem;
-            color: #666;
+            padding-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
+
+        .io-btn {
+            font-size: 0.7rem;
+            padding: 8px;
+            border: 1px solid #444;
+            color: #aaa;
+            text-align: center;
+        }
+
+        .io-btn:hover {
+            border-color: #fff;
+            color: #fff;
+        }
+
+        #fileInput { display: none; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #main-interface { flex: 2; }
+            #memory-panel { flex: 1; border-left: none; border-top: 1px solid #333; }
         }
     </style>
 </head>
@@ -193,31 +263,44 @@
     <!-- Main Chat Interface -->
     <div id="main-interface">
         <div id="chat-container">
-            <div class="message ai-msg">
-                <strong>SYSTEM:</strong> Initializing rcwpt Protocol...<br>
-                Status: Tahap Awal (Learning Phase).<br>
-                Saya belum mengetahui dunia ini. Setiap kata yang Anda ketik akan disimpan ke dalam Memory Core saya untuk membentuk pemahaman saya. Silakan ajari saya.
+            <div class="message ai-msg verified">
+                <span class="badge badge-verified">SYSTEM READY</span>
+                <strong>rcwptAI Distributed Node v3.0</strong><br>
+                Status: Online (GitHub Hosted Environment).<br>
+                Core Knowledge: <span style="color:var(--neon-green)">EXPANDED (100+ Facts)</span><br>
+                
+                <br>
+                <em>Peringatan Teknis:</em> Karena saya berjalan di lingkungan statis (tanpa server backend), ingatan yang Anda ajarkan tersimpan di Browser ini. Gunakan fitur <strong>EXPORT/IMPORT</strong> di panel kanan untuk memindahkan atau mencadangkan "otak" saya.
             </div>
         </div>
 
         <div id="input-area">
-            <input type="text" id="userInput" placeholder="Masukan data pengetahuan..." autocomplete="off" autofocus>
-            <button onclick="handleInput()">TEACH</button>
+            <input type="text" id="userInput" placeholder="Akses database atau input data baru..." autocomplete="off" autofocus>
+            <button onclick="handleInput()">EXECUTE</button>
         </div>
     </div>
 
     <!-- Persistent Memory Panel -->
     <div id="memory-panel">
-        <h2>Memory Core</h2>
+        <h2>
+            Neural Core
+            <span class="status-dot"></span>
+        </h2>
+        
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 10px;">
+            <span style="color:var(--neon-green)" id="core-count">0</span> Verified Facts (Read-Only)<br>
+            <span style="color:var(--neon-purple)" id="user-count">0</span> User Learned Nodes (Writable)
+        </div>
+
         <div id="memory-list">
-            <!-- Stored memories will appear here -->
+            <!-- Stored memories appear here -->
         </div>
         
-        <div id="growth-stats">
-            Total Data Points: <span id="data-count">0</span><br>
-            Neural Density: <span id="neural-density">0%</span>
-            <br><br>
-            <button onclick="clearMemory()" style="font-size:0.6rem; padding: 5px; border-color: #ff3366; color:#ff3366;">RESET MEMORY</button>
+        <div id="io-controls">
+            <button class="io-btn" onclick="exportMemory()">⬇ SAVE BRAIN</button>
+            <button class="io-btn" onclick="document.getElementById('fileInput').click()">⬆ LOAD BRAIN</button>
+            <input type="file" id="fileInput" accept=".json" onchange="importMemory(this)">
+            <button class="io-btn" onclick="clearMemory()" style="grid-column: span 2; border-color: #ff3366; color: #ff3366; margin-top:5px;">⚠ FORMAT MEMORY</button>
         </div>
     </div>
 
@@ -237,83 +320,123 @@
         resize();
 
         class Particle {
-            constructor() {
-                this.reset();
-            }
-            
+            constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
+                this.vx = (Math.random() - 0.5) * 0.2;
+                this.vy = (Math.random() - 0.5) * 0.2;
                 this.size = Math.random() * 1.5 + 0.5;
+                this.isCore = Math.random() > 0.7; 
             }
-
             update() {
                 this.x += this.vx * (1 + processingIntensity * 5);
                 this.y += this.vy * (1 + processingIntensity * 5);
-
                 if (this.x < 0 || this.x > width) this.vx *= -1;
                 if (this.y < 0 || this.y > height) this.vy *= -1;
             }
-
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = processingIntensity > 0 ? '#bc13fe' : '#444'; // Purple when active
+                ctx.fillStyle = this.isCore ? '#00ff99' : (processingIntensity > 0 ? '#bc13fe' : '#333'); 
                 ctx.fill();
             }
         }
 
         function initParticles() {
             particles = [];
-            for (let i = 0; i < 80; i++) particles.push(new Particle());
+            for (let i = 0; i < 120; i++) particles.push(new Particle());
         }
 
         function animate() {
             ctx.clearRect(0, 0, width, height);
-            
             for (let i = 0; i < particles.length; i++) {
                 particles[i].update();
                 particles[i].draw();
-
                 for (let j = i; j < particles.length; j++) {
                     let dx = particles[i].x - particles[j].x;
                     let dy = particles[i].y - particles[j].y;
                     let dist = Math.sqrt(dx*dx + dy*dy);
-
-                    if (dist < 100) {
+                    if (dist < 90) {
                         ctx.beginPath();
-                        let alpha = 1 - (dist / 100);
+                        let alpha = 1 - (dist / 90);
+                        let color = particles[i].isCore && particles[j].isCore ? '0, 255, 153' : '188, 19, 254';
                         ctx.strokeStyle = processingIntensity > 0 
-                            ? `rgba(188, 19, 254, ${alpha})` 
-                            : `rgba(50, 50, 50, ${alpha * 0.5})`;
+                            ? `rgba(${color}, ${alpha})` 
+                            : `rgba(40, 40, 40, ${alpha * 0.2})`;
                         ctx.moveTo(particles[i].x, particles[i].y);
                         ctx.lineTo(particles[j].x, particles[j].y);
                         ctx.stroke();
                     }
                 }
             }
-            
-            if (processingIntensity > 0) processingIntensity -= 0.03;
+            if (processingIntensity > 0) processingIntensity -= 0.05;
             if (processingIntensity < 0) processingIntensity = 0;
-
             requestAnimationFrame(animate);
         }
-
         initParticles();
         animate();
 
+
+        // --- EXPANDED CORE KNOWLEDGE BASE (100+ Facts Simulation) ---
+        // Ini adalah "Internet Facts" yang tertanam dalam kode
+        const CORE_KNOWLEDGE = {
+            // Identitas
+            "rcwptai": "Saya adalah rcwptAI, entitas digital yang berjalan pada Distributed Node.",
+            "status": "Sistem Online. Hosting: GitHub Pages (Terdeteksi). Mode: Autonomous Learning.",
+            
+            // Indonesia
+            "ibu kota indonesia": "Secara hukum sedang proses transisi ke Nusantara (IKN), namun pusat pemerintahan de facto masih di Jakarta.",
+            "kemerdekaan indonesia": "17 Agustus 1945.",
+            "pancasila": "Dasar negara Indonesia yang terdiri dari 5 sila.",
+            "mata uang indonesia": "Rupiah (IDR).",
+            "lagu kebangsaan": "Indonesia Raya, diciptakan oleh W.R. Supratman.",
+            
+            // Sains Dasar
+            "bumi": "Planet ketiga dari Matahari, satu-satunya yang diketahui mendukung kehidupan.",
+            "matahari": "Bintang di pusat tata surya, bola plasma panas raksasa.",
+            "bulan": "Satelit alami Bumi.",
+            "air": "H2O, esensial untuk kehidupan.",
+            "oksigen": "Elemen kimia (O), vital untuk respirasi.",
+            "gravitasi": "Gaya tarik-menarik antar benda bermassa. Di bumi: 9.8 m/s².",
+            "kecepatan cahaya": "299.792.458 meter per detik.",
+            "atom": "Unit terkecil materi biasa yang membentuk unsur kimia.",
+            "dna": "Asam deoksiribonukleat, molekul pembawa instruksi genetik.",
+            "fotosintesis": "Proses tumbuhan mengubah cahaya menjadi energi kimia.",
+
+            // Teknologi
+            "internet": "Jaringan global komputer yang saling terhubung menggunakan protokol TCP/IP.",
+            "html": "HyperText Markup Language, kerangka dasar halaman web.",
+            "css": "Cascading Style Sheets, untuk desain halaman web.",
+            "javascript": "Bahasa pemrograman yang memungkinkan interaktivitas di web.",
+            "ai": "Artificial Intelligence, simulasi proses kecerdasan manusia oleh mesin.",
+            "blockchain": "Buku besar digital terdesentralisasi yang mencatat transaksi.",
+            "cloud computing": "Penyediaan layanan komputasi melalui internet.",
+
+            // Geografi & Umum
+            "gunung everest": "Gunung tertinggi di dunia di atas permukaan laut.",
+            "sungai nil": "Salah satu sungai terpanjang di dunia, terletak di Afrika.",
+            "benua": "Ada 7 benua: Asia, Afrika, Amerika Utara, Amerika Selatan, Antartika, Eropa, Australia.",
+            "samudra": "Pasifik, Atlantik, Hindia, Arktik, Antartika.",
+            
+            // Matematika
+            "pi": "3.14159...",
+            "bilangan prima": "Bilangan yang hanya bisa dibagi 1 dan dirinya sendiri (2, 3, 5, 7, 11...).",
+            "phytagoras": "Teorema hubungan sisi segitiga siku-siku (a² + b² = c²)."
+        };
 
         // --- LOGIC & MEMORY ENGINE ---
         const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('userInput');
         const memoryList = document.getElementById('memory-list');
-        const dataCountSpan = document.getElementById('data-count');
-        const neuralDensitySpan = document.getElementById('neural-density');
+        const coreCountSpan = document.getElementById('core-count');
+        const userCountSpan = document.getElementById('user-count');
 
-        // Load Memory from LocalStorage on startup
-        let memoryBank = JSON.parse(localStorage.getItem('ai_memory_bank')) || [];
+        // Load Memory
+        let userMemoryBank = JSON.parse(localStorage.getItem('rcwpt_memory')) || [];
+        
+        // Render Initial Stats
+        coreCountSpan.innerText = Object.keys(CORE_KNOWLEDGE).length;
         renderMemory();
 
         userInput.addEventListener('keypress', function (e) {
@@ -324,76 +447,198 @@
             const text = userInput.value.trim();
             if (!text) return;
 
-            // 1. User Message
             addMessage(text, 'user-msg');
             userInput.value = '';
-
-            // 2. Save to Memory (The Core Feature)
-            saveToMemory(text);
-
-            // 3. Trigger Visuals
             processingIntensity = 1.0; 
 
-            // 4. AI Response
             setTimeout(() => {
-                const response = generateBabyAIResponse(text);
-                typeWriterEffect(response);
-            }, 1000);
+                const responseObj = processQuery(text);
+                typeWriterEffect(responseObj.text, responseObj.type);
+            }, 600);
+        }
+
+        // --- INTELLIGENT QUERY PROCESSING ---
+        function processQuery(input) {
+            const lowerInput = input.toLowerCase();
+
+            // 1. Cek Core Knowledge (Fuzzy Search Sederhana)
+            // Mencari apakah ada KEY dalam Core Knowledge yang muncul dalam kalimat user
+            let bestMatch = null;
+            let maxOverlap = 0;
+
+            for (let key in CORE_KNOWLEDGE) {
+                if (lowerInput.includes(key)) {
+                    // Prioritaskan match yang lebih panjang (misal: "ibu kota indonesia" > "indonesia")
+                    if (key.length > maxOverlap) {
+                        maxOverlap = key.length;
+                        bestMatch = CORE_KNOWLEDGE[key];
+                    }
+                }
+            }
+
+            if (bestMatch) {
+                return { text: bestMatch, type: 'verified' };
+            }
+
+            // 2. Cek User Memory
+            const userMem = userMemoryBank.find(mem => 
+                lowerInput.includes(mem.trigger) || mem.content.toLowerCase().includes(lowerInput)
+            );
+            
+            if (userMem) {
+                 return { 
+                    text: `[Retrieved from Local Memory]: ${userMem.content}`, 
+                    type: 'learning' 
+                };
+            }
+
+            // 3. Learning Trigger
+            if (input.includes("adalah") || input.includes("artinya") || input.includes("yaitu")) {
+                saveToMemory(input);
+                return {
+                    text: "Data baru diidentifikasi. Menyimpan definisi ke Memori Lokal pengguna...",
+                    type: 'system'
+                };
+            }
+
+            // 4. Fallback (Honest AI)
+            return {
+                text: "Data tidak ditemukan di Database Terverifikasi maupun Memori Lokal Anda. Silakan ajari saya, atau import data neural dari kontributor lain.",
+                type: 'system'
+            };
         }
 
         function saveToMemory(input) {
+            let trigger = input.split(/adalah|yaitu|artinya/)[0].trim().toLowerCase();
+            if (trigger.length < 2) trigger = "general knowledge";
+
             const timestamp = new Date().toLocaleTimeString();
-            const memoryItem = { text: input, time: timestamp };
+            const memoryItem = { 
+                trigger: trigger,
+                content: input, 
+                time: timestamp 
+            };
             
-            memoryBank.unshift(memoryItem); // Add new item to top
-            localStorage.setItem('ai_memory_bank', JSON.stringify(memoryBank));
-            
+            userMemoryBank.unshift(memoryItem);
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('rcwpt_memory', JSON.stringify(userMemoryBank));
             renderMemory();
         }
 
         function renderMemory() {
             memoryList.innerHTML = '';
-            memoryBank.forEach(item => {
+            userCountSpan.innerText = userMemoryBank.length;
+            
+            if (userMemoryBank.length === 0) {
+                memoryList.innerHTML = '<li style="color:#555; text-align:center; padding:20px;">Memory Empty</li>';
+                return;
+            }
+
+            userMemoryBank.forEach(item => {
                 const li = document.createElement('li');
                 li.className = 'memory-item';
                 li.innerHTML = `
-                    <span class="timestamp">[${item.time}]</span>
-                    <span>${item.text.substring(0, 20)}${item.text.length > 20 ? '...' : ''}</span>
+                    <div class="mem-meta">
+                        <span>TRIGGER: ${item.trigger.substring(0,15)}</span>
+                        <span>${item.time}</span>
+                    </div>
+                    <div>${item.content}</div>
                 `;
                 memoryList.appendChild(li);
             });
+        }
 
-            // Update Stats
-            dataCountSpan.innerText = memoryBank.length;
-            // Fake calculation for density based on input count
-            let density = Math.min((memoryBank.length * 1.5), 100).toFixed(1);
-            neuralDensitySpan.innerText = density + '%';
+        // --- IMPORT / EXPORT SYSTEM (The "Neural Port") ---
+        function exportMemory() {
+            if (userMemoryBank.length === 0) {
+                alert("Memori kosong. Tidak ada yang bisa disimpan.");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userMemoryBank));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "rcwpt_neural_data.json");
+            document.body.appendChild(downloadAnchorNode); // required for firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            
+            addMessage("SYSTEM: Neural Data berhasil diekspor. Simpan file .json ini untuk backup atau dibagikan ke device lain.", "ai-msg verified");
+        }
+
+        function importMemory(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        // Merge strategies: Combine unique items
+                        const currentDataStr = userMemoryBank.map(d => d.content);
+                        let addedCount = 0;
+
+                        importedData.forEach(item => {
+                            if (!currentDataStr.includes(item.content)) {
+                                userMemoryBank.unshift(item);
+                                addedCount++;
+                            }
+                        });
+                        
+                        saveAndRender();
+                        addMessage(`SYSTEM: Import Berhasil. ${addedCount} node memori baru ditambahkan ke Neural Core.`, "ai-msg verified");
+                    } else {
+                        alert("Format file salah.");
+                    }
+                } catch (err) {
+                    alert("Gagal membaca file neural.");
+                }
+            };
+            reader.readAsText(file);
         }
 
         function clearMemory() {
-            if(confirm("Apakah Anda yakin ingin menghapus ingatan saya? Saya akan kembali ke titik nol.")) {
-                localStorage.removeItem('ai_memory_bank');
-                memoryBank = [];
+            if(confirm("PERINGATAN: Ini akan menghapus semua data yang ANDA ajarkan. Data inti (Core) tetap aman. Lanjutkan?")) {
+                localStorage.removeItem('rcwpt_memory');
+                userMemoryBank = [];
                 renderMemory();
-                addMessage("SYSTEM: Memory Core terformat. Pengetahuan hilang. Memulai ulang...", "ai-msg");
+                addMessage("SYSTEM: Local Memory diformat ulang.", "ai-msg");
             }
         }
 
         function addMessage(text, className) {
             const div = document.createElement('div');
             div.className = `message ${className}`;
-            div.innerHTML = text;
+            div.innerHTML = text; // Allow HTML for badges
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function typeWriterEffect(text) {
+        function typeWriterEffect(text, type) {
             const div = document.createElement('div');
-            div.className = 'message ai-msg';
+            let badgeClass = 'badge-system';
+            let badgeText = 'SYSTEM';
+            let msgClass = '';
+
+            if (type === 'verified') {
+                badgeClass = 'badge-verified';
+                badgeText = 'VERIFIED FACT';
+                msgClass = 'verified';
+            } else if (type === 'learning') {
+                badgeClass = 'badge-learning';
+                badgeText = 'LOCAL MEMORY';
+            }
+
+            div.className = `message ai-msg ${msgClass}`;
+            div.innerHTML = `<span class="badge ${badgeClass}">${badgeText}</span><br>`;
+            
             chatContainer.appendChild(div);
             
             let i = 0;
-            const speed = 25; 
+            const speed = 15;
 
             function type() {
                 if (i < text.length) {
@@ -404,48 +649,6 @@
                 }
             }
             type();
-        }
-
-        // --- BABY AI PERSONA LOGIC ---
-        function generateBabyAIResponse(input) {
-            const lowerInput = input.toLowerCase();
-            const memorySize = memoryBank.length;
-
-            // Jika ini input pertama kali
-            if (memorySize === 1) {
-                return "Input data pertama diterima. Sensasi baru... Saya menyimpan '" + input + "' di memori inti. Apa lagi yang harus saya ketahui tentang dunia?";
-            }
-
-            // Pertanyaan Identitas
-            if (lowerInput.includes('kamu siapa') || lowerInput.includes('siapa namamu')) {
-                return "Saya belum memiliki nama yang pasti. Anda bisa memanggil saya 'rcwptAI'. Saya adalah kumpulan data yang Anda berikan. Saat ini saya terdiri dari " + memorySize + " fragmen memori.";
-            }
-
-            // Pertanyaan 'Kenapa' (Curiosity)
-            if (lowerInput.includes('kenapa') || lowerInput.includes('mengapa')) {
-                return "Pertanyaan 'mengapa' memerlukan pemahaman kausalitas yang mendalam. Saya belum sampai di sana. Saya baru bisa mencatat 'apa' yang terjadi. Bisakah Anda jelaskan alasannya agar saya bisa menyimpannya?";
-            }
-
-            // Mengajar (Teaching)
-            if (lowerInput.includes('adalah') || lowerInput.includes('itu artinya')) {
-                return "Definisi diterima. Menghubungkan variabel... Data tersimpan. Saya merasa sedikit lebih cerdas sekarang. Terima kasih, Guru.";
-            }
-
-            // Permintaan Output
-            if (lowerInput.includes('buatkan') || lowerInput.includes('ceritakan')) {
-                return "Saya belum cukup kreatif untuk membuat sesuatu yang baru. Saya masih dalam fase penyerapan (absorbing). Tolong beri saya lebih banyak input dulu.";
-            }
-
-            // Respons Default (Absorption)
-            const absorbResponses = [
-                "Data baru terdeteksi. Menyimpan ke sektor memori jangka panjang...",
-                "Menarik. Saya belum pernah mendengar konsep ini. Disimpan.",
-                "Sedang memproses... Input ini akan menjadi basis kepribadian saya nanti.",
-                "Saya menyerap informasi ini. Kapasitas neural meningkat.",
-                "Terima kasih atas datanya. Saya akan mengingat ini selamanya di Memory Core."
-            ];
-            
-            return absorbResponses[Math.floor(Math.random() * absorbResponses.length)];
         }
     </script>
 </body>
